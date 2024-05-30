@@ -53,6 +53,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.erayucar.casestudyforexzi.R
 import com.erayucar.casestudyforexzi.core.network.dto.BookListResponse
@@ -62,10 +63,12 @@ import com.erayucar.casestudyforexzi.ui.orderBook.calculateVolumePercentage
 import com.erayucar.casestudyforexzi.ui.theme.Gray80
 import com.erayucar.casestudyforexzi.ui.theme.Green80
 import com.erayucar.casestudyforexzi.ui.theme.NavyBlue
+import com.erayucar.casestudyforexzi.ui.theme.NavyBlue80
 import com.erayucar.casestudyforexzi.ui.theme.NavyBlue90
 import com.erayucar.casestudyforexzi.ui.theme.Red80
 import com.erayucar.casestudyforexzi.ui.theme.White80
 import com.erayucar.casestudyforexzi.ui.utils.formatNumberToPercent
+import com.erayucar.casestudyforexzi.ui.utils.splitTradingPair
 import com.erayucar.casestudyforexzi.ui.utils.toStringFormat
 import kotlinx.coroutines.delay
 
@@ -80,11 +83,11 @@ fun TradePanelScreen(
     val pairState = viewModel.pair.observeAsState()
     val configuration = LocalConfiguration.current
     val screenWidth = configuration.screenWidthDp.dp
-    val oldRate = remember {
-        mutableStateOf(0L)
+    val isError = remember {
+        mutableStateOf(false)
     }
 
-    val items = listOf<BottomNavItem>(
+    val items = listOf(
         BottomNavItem(
             "EXZI",
             selectedIcon = painterResource(R.drawable.logo),
@@ -110,11 +113,14 @@ fun TradePanelScreen(
     )
 
     LaunchedEffect(Unit) {
-        viewModel.getPair(pairID)
-        viewModel.getOrderBook(pairID)
-        delay(2000L)
-        oldRate.value = pairState.value?.pair?.rate ?: 0
-
+        while (true) {
+            viewModel.getPair(pairID)
+            viewModel.getOrderBook(pairID)
+            delay(2000L)
+        }
+    }
+    if(pairState.value?.isError != false || orderBookListState.value?.isError != false) {
+        isError.value = true
     }
     Scaffold(topBar = {
 
@@ -164,6 +170,23 @@ fun TradePanelScreen(
                         color = White80,
                         modifier = Modifier.align(Alignment.CenterHorizontally)
                     )
+                } else if (isError.value) {
+                    Dialog(onDismissRequest = { isError.value = false }) {
+                        Box(
+                            modifier = Modifier
+                                .size(300.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(NavyBlue80)
+                                .align(Alignment.CenterHorizontally)
+                        ) {
+                            Text(
+                                text = "An error occurred",
+                                color = White80,
+                                fontSize = 20.sp,
+                            )
+                        }
+                    }
+
                 } else {
                     pairState.value?.pair?.let {
                         PanelHeader(screenWidth = screenWidth, it)
@@ -203,7 +226,7 @@ fun TradePanelScreen(
                         )
 
                     }
-                    HorizontalDivider(thickness = 0.5.dp, color =Color(0xFF424D70) )
+                    HorizontalDivider(thickness = 0.5.dp, color = Color(0xFF424D70))
                 }
 
             }
@@ -296,7 +319,11 @@ fun Panel(
                 )
             }
 
-            Text(text = "= ${pair.main.rate_usd.toStringFormat()} USD", color = Gray80, modifier = Modifier.padding(top = 10.dp))
+            Text(
+                text = "= ${pair.main.rate_usd.toStringFormat()} USD",
+                color = Gray80,
+                modifier = Modifier.padding(top = 10.dp)
+            )
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -381,12 +408,12 @@ fun Panel(
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
                 Text(
-                    "Price (USDT)",
+                    "Price (${pair.name.splitTradingPair().second})",
                     color = Color.Gray,
                     textAlign = TextAlign.Center,
                     fontSize = 11.sp
                 )
-                Text("Quantity (BTC)", color = Color.Gray, fontSize = 11.sp)
+                Text("Quantity (${pair.name.splitTradingPair().first})", color = Color.Gray, fontSize = 11.sp)
             }
             Column(
                 modifier = Modifier
@@ -552,7 +579,7 @@ fun PanelHeader(
                 verticalAlignment = Alignment.Bottom
 
             ) {
-                Text(text = pair.name, color = White80, fontSize = 18.sp)
+                Text(text = pair.name.splitTradingPair().first + "/"+ pair.name.splitTradingPair().second, color = White80, fontSize = 18.sp)
                 Spacer(modifier = Modifier.width(10.dp))
                 Text(
                     text = (if (pair.percent > 0) "+" else "-") + pair.percent.formatNumberToPercent(),

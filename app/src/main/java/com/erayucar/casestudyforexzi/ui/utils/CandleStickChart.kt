@@ -43,6 +43,9 @@ fun CandleStickChart(
         )
 
     }
+    if (candleEntries.isEmpty()) {
+        return
+    }
     CartesianChartHost(
         chart =
         rememberCartesianChart(

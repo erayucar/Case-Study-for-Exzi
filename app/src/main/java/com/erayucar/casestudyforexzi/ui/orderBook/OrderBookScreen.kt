@@ -2,6 +2,7 @@ package com.erayucar.casestudyforexzi.ui.orderBook
 
 import android.annotation.SuppressLint
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -36,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
@@ -57,6 +59,8 @@ import com.erayucar.casestudyforexzi.ui.theme.Red80
 import com.erayucar.casestudyforexzi.ui.theme.White80
 import com.erayucar.casestudyforexzi.ui.utils.CandleStickChart
 import com.erayucar.casestudyforexzi.ui.utils.formatNumberToPercent
+import com.erayucar.casestudyforexzi.ui.utils.splitTradingPair
+import com.erayucar.casestudyforexzi.ui.utils.toShortenedString
 import com.erayucar.casestudyforexzi.ui.utils.toStringFormat
 import kotlinx.coroutines.delay
 
@@ -82,10 +86,12 @@ fun OrderBookScreen(
         mutableStateOf(0L)
     }
     LaunchedEffect(Unit) {
-        viewModel.getPair(pairID)
-        viewModel.getOrderBook(pairID)
-        delay(2000L)
-        oldRate.value = pairState.value?.pair?.rate ?: 0
+        while (true) {
+            viewModel.getPair(pairID)
+            viewModel.getOrderBook(pairID)
+            delay(2000L)
+            oldRate.value = pairState.value?.pair?.rate ?: 0
+        }
 
     }
     pairState.value?.pair?.let {
@@ -93,6 +99,10 @@ fun OrderBookScreen(
             viewModel.getGraphHist(pairName = it.name, 1705363200)
 
         }
+
+    }
+    if (pairState.value?.isError != false || graphHistListState.value?.isError != false || orderBookListState.value?.isError != false) {
+        isError.value = true
     }
 
     Scaffold(
@@ -101,13 +111,13 @@ fun OrderBookScreen(
             .background(NavyBlue),
         topBar = {
             pairState.value?.pair?.let {
-                Header(it.name) { onBack() }
+                Header(it.name.splitTradingPair().first + "/" + it.name.splitTradingPair().second) { onBack() }
             }
         },
         bottomBar = {
             BuySellButtons(
 
-            ){
+            ) {
                 onBuyClick(pairID)
             }
         },
@@ -116,36 +126,38 @@ fun OrderBookScreen(
             Column(
                 modifier = Modifier
                     .fillMaxSize()
+                    .pointerInput(Unit) {
+                        detectTapGestures { offset ->
+                            isError.value = false
+                        }
+
+                    }
                     .padding(it),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.Center
             ) {
-                if (pairState.value?.isError != false || graphHistListState.value?.isError != false || orderBookListState.value?.isError != false) {
+                if (isError.value) {
                     Dialog(onDismissRequest = { isError.value = false }) {
-                        Text(
-                            text = pairState.value?.errorMessage ?: "",
-                            color = Color.Red,
-                            fontSize = 20.sp,
-                        )
-                        Text(
-                            text = graphHistListState.value?.errorMessage ?: "",
-                            color = Color.Red,
-                            fontSize = 20.sp,
-                        )
-                        Text(
-                            text = orderBookListState.value?.errorMessage ?: "",
-                            color = Color.Red,
-                            fontSize = 20.sp,
-                        )
+                        Box(
+                            modifier = Modifier
+                                .size(300.dp)
+                                .clip(RoundedCornerShape(10.dp))
+                                .background(NavyBlue80)
+                                .align(Alignment.CenterHorizontally)
+                        ) {
+                            Text(
+                                text = "An error occurred",
+                                color = White80,
+                                fontSize = 20.sp,
+                            )
+                        }
                     }
-                }
-                if (pairState.value?.isLoading != false || graphHistListState.value?.isLoading != false || orderBookListState.value?.isLoading != false) {
+                } else if (pairState.value?.isLoading != false || graphHistListState.value?.isLoading != false || orderBookListState.value?.isLoading != false) {
                     CircularProgressIndicator()
                 } else {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-
                             .padding(10.dp), horizontalArrangement = Arrangement.Start
                     ) {
                         Text(text = "Chart", color = White80, fontSize = 13.sp)
@@ -153,10 +165,13 @@ fun OrderBookScreen(
                         Text(text = "Info", color = Gray80, fontSize = 13.sp)
                     }
                     HorizontalDivider(thickness = 1.dp, color = Color(0xFF333C57))
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
+                    LazyColumn(
+                        modifier = Modifier
+                            .fillMaxSize()
+                    ) {
                         item {
                             pairState.value?.pair?.let {
-                                SumSection(screenWidth, it,oldRate.value)
+                                SumSection(screenWidth, it, oldRate.value)
 
                             }
                         }
@@ -167,7 +182,9 @@ fun OrderBookScreen(
                         }
                         item {
                             orderBookListState.value?.orderBookList?.let { orderBookList ->
-                                OrderBookSection(orderBookList)
+                                pairState.value?.pair?.let { data ->
+                                    OrderBookSection(data, orderBookList)
+                                }
                             }
                         }
                     }
@@ -175,6 +192,7 @@ fun OrderBookScreen(
             }
         })
 }
+
 @Composable
 fun Header(
     pairName: String,
@@ -213,20 +231,23 @@ fun Header(
     }
 }
 
+
 @Composable
 fun SumSection(
     screenWidth: Dp,
     pair: Data,
-    oldRate:Long
+    oldRate: Long
 ) {
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(10.dp),
+            .padding(5.dp),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         Column(
-            modifier = Modifier.width(screenWidth / 2)
+            modifier = Modifier.width(screenWidth / 2 - 30.dp),
+            verticalArrangement = Arrangement.Center
         ) {
             Text(
                 text = String.format("%.2f", pair.rate_f.toFloat()),
@@ -259,7 +280,7 @@ fun SumSection(
                     Text(
                         text = "24h High",
                         color = Gray80,
-                        fontSize = 12.sp
+                        fontSize = 11.sp
                     )
                     Text(
                         text = pair.high_f,
@@ -269,9 +290,9 @@ fun SumSection(
                 }
                 Column {
                     Text(
-                        text = "24h Amount()",
+                        text = "24h Amount(${pair.name.splitTradingPair().first})",
                         color = Gray80,
-                        fontSize = 12.sp
+                        fontSize = 11.sp
                     )
                     Text(
                         text = pair.volume_world_f,
@@ -280,13 +301,13 @@ fun SumSection(
                     )
                 }
             }
-            Column{
+            Column {
                 Column(
                 ) {
                     Text(
                         text = "24h Low",
                         color = Gray80,
-                        fontSize = 12.sp
+                        fontSize = 11.sp
                     )
                     Text(
                         text = pair.low_f,
@@ -297,12 +318,12 @@ fun SumSection(
                 Column(
                 ) {
                     Text(
-                        text = "24h Volume()",
+                        text = "24h Volume(${pair.name.splitTradingPair().second}",
                         color = Gray80,
-                        fontSize = 12.sp
+                        fontSize = 10.sp
                     )
                     Text(
-                        text = pair.volume_second_world_f,
+                        text = pair.volume_second_world_f.toInt().toShortenedString(),
                         color = White80,
                         fontSize = 13.sp
                     )
@@ -317,7 +338,7 @@ fun ChartSection(
     candles: List<CandleEntry>,
     screenWidth: Dp
 ) {
-    Row (modifier =Modifier.fillMaxWidth()){
+    Row(modifier = Modifier.fillMaxWidth()) {
         Row(
             horizontalArrangement = Arrangement.SpaceAround,
             modifier = Modifier
@@ -358,7 +379,10 @@ fun ChartSection(
                 .height(313.dp)
                 .background(NavyBlue80)
         ) {
+
+
             CandleStickChart(candleEntries = candles)
+
         }
         Box(
             modifier = Modifier
@@ -368,8 +392,10 @@ fun ChartSection(
                 .background(NavyBlue80)
         ) {
         }
-        Row (modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceAround) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceAround
+        ) {
             Row(
                 horizontalArrangement = Arrangement.SpaceAround,
                 modifier = Modifier
@@ -401,6 +427,7 @@ fun ChartSection(
 
 @Composable
 fun OrderBookSection(
+    pair: Data,
     orderBookList: BookListResponse
 ) {
     val configuration = LocalConfiguration.current
@@ -412,13 +439,13 @@ fun OrderBookSection(
             .padding(top = 10.dp, start = 10.dp, end = 10.dp),
         contentAlignment = Alignment.CenterStart
     ) {
-        Text("Quantity (BTC)", color = Color.Gray)
+        Text("Quantity (${pair.name.splitTradingPair().first})", color = Color.Gray)
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.Center
         ) {
             Text(
-                "Price (USDT)",
+                "Price (${pair.name.splitTradingPair().second}",
                 color = Color.Gray,
                 textAlign = TextAlign.Center
             )
@@ -550,7 +577,7 @@ fun BuySellButtons(
                 modifier = Modifier
                     .width(118.dp)
                     .height(36.dp),
-                onClick = { onBuyClick()},
+                onClick = { onBuyClick() },
                 colors = ButtonDefaults.buttonColors(containerColor = Green80)
             ) {
                 Text("Buy", color = Color.White, fontSize = 15.sp)
