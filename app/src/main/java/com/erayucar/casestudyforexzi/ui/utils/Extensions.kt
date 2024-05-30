@@ -3,7 +3,9 @@ package com.erayucar.casestudyforexzi.ui.utils
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Dp
+import java.math.BigDecimal
 import java.text.DecimalFormat
+import java.util.Locale
 
 fun Double.formatNumberToPercent(): String {
     // Divide the number by 100000 to get the desired value
@@ -28,16 +30,6 @@ fun ChartRect.contains(x: Float, y: Float): Boolean {
 }
 
 fun Long.toStringFormat(): String {
-    val numberString = this.toString()
-    val wholeNumberString = numberString.substringBefore(".")
-    val fractionalPartString = numberString.substringAfter(".")
-
-    val wholeNumber = wholeNumberString.toInt()
-    val formattedWholeNumber = String.format("%,d", wholeNumber)
-
-    val fractionalDigits = fractionalPartString.substring(0, 2)
-    val fractionalInt = fractionalDigits.toInt()
-    val formattedFractionalPart = String.format("%02d", fractionalInt)
-
-    return "$formattedWholeNumber.$formattedFractionalPart"
+    val rate_usdLong =BigDecimal(this / 1000000).movePointLeft(2)
+   return String.format(Locale.US, "%,.2f", rate_usdLong)
 }

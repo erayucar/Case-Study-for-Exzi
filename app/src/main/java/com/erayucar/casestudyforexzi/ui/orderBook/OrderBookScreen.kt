@@ -22,7 +22,6 @@ import androidx.compose.material.icons.filled.Star
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Divider
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -49,6 +48,7 @@ import com.erayucar.casestudyforexzi.R
 import com.erayucar.casestudyforexzi.core.data.model.CandleEntry
 import com.erayucar.casestudyforexzi.core.network.dto.BookListResponse
 import com.erayucar.casestudyforexzi.core.network.dto.Data
+import com.erayucar.casestudyforexzi.ui.SharedViewModel
 import com.erayucar.casestudyforexzi.ui.theme.Gray80
 import com.erayucar.casestudyforexzi.ui.theme.Green80
 import com.erayucar.casestudyforexzi.ui.theme.NavyBlue
@@ -57,16 +57,16 @@ import com.erayucar.casestudyforexzi.ui.theme.Red80
 import com.erayucar.casestudyforexzi.ui.theme.White80
 import com.erayucar.casestudyforexzi.ui.utils.CandleStickChart
 import com.erayucar.casestudyforexzi.ui.utils.formatNumberToPercent
+import com.erayucar.casestudyforexzi.ui.utils.toStringFormat
 import kotlinx.coroutines.delay
-import java.math.BigDecimal
-import java.util.Locale
 
 
 @SuppressLint("UnusedMaterial3ScaffoldPaddingParameter")
 @Composable
 fun OrderBookScreen(
-    viewModel: OrderBookViewModel = hiltViewModel(),
+    viewModel: SharedViewModel = hiltViewModel(),
     pairID: String = "1041",
+    onBuyClick: (String) -> Unit,
     onBack: () -> Unit
 ) {
 
@@ -105,7 +105,11 @@ fun OrderBookScreen(
             }
         },
         bottomBar = {
-            BuySellButtons()
+            BuySellButtons(
+
+            ){
+                onBuyClick(pairID)
+            }
         },
         containerColor = NavyBlue,
         content = {
@@ -231,16 +235,16 @@ fun SumSection(
             )
 
             Row {
-                val rate_usdLong = BigDecimal(pair.main.rate_usd / 1000000).movePointLeft(2)
+
 
                 Text(
                     modifier = Modifier.padding(end = 10.dp),
-                    text = "=$${String.format(Locale.US, "%,.2f", rate_usdLong)}",
+                    text = "=$${pair.main.rate_usd.toStringFormat()}",
                     color = Gray80,
                     fontSize = 13.sp
                 )
                 Text(
-                    text = pair.percent.formatNumberToPercent(),
+                    text = (if (pair.percent > 0) "+" else "-") + pair.percent.formatNumberToPercent(),
                     color = if (pair.percent > 0) Green80 else Red80,
                     fontSize = 11.sp
                 )
@@ -503,7 +507,9 @@ fun OrderBookSection(
 }
 
 @Composable
-fun BuySellButtons() {
+fun BuySellButtons(
+    onBuyClick: () -> Unit
+) {
     Row(
         modifier = Modifier
             .background(NavyBlue80)
@@ -544,7 +550,7 @@ fun BuySellButtons() {
                 modifier = Modifier
                     .width(118.dp)
                     .height(36.dp),
-                onClick = { /* Buy action */ },
+                onClick = { onBuyClick()},
                 colors = ButtonDefaults.buttonColors(containerColor = Green80)
             ) {
                 Text("Buy", color = Color.White, fontSize = 15.sp)

@@ -47,10 +47,7 @@ fun CandleStickChart(
         chart =
         rememberCartesianChart(
             rememberCandlestickCartesianLayer(),
-            startAxis = rememberStartAxis(tick = LineComponent(
-                color = 16053749
-
-            )),
+            startAxis = rememberStartAxis(),
             bottomAxis =
             rememberBottomAxis(
                 guideline = null,

@@ -1,4 +1,4 @@
-package com.erayucar.casestudyforexzi.ui.orderBook
+package com.erayucar.casestudyforexzi.ui
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -17,7 +17,7 @@ import javax.inject.Inject
 
 
 @HiltViewModel
-class OrderBookViewModel @Inject constructor(
+class SharedViewModel @Inject constructor(
     private val getBookListUseCase: GetBookListUseCase,
     private val getGraphHistUseCase: GetGraphHistUseCase,
     private val getTickerUseCase: GetTickerUseCase

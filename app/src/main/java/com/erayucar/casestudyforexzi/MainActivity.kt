@@ -16,6 +16,7 @@ import androidx.navigation.navArgument
 import com.erayucar.casestudyforexzi.ui.SplashScreen
 import com.erayucar.casestudyforexzi.ui.orderBook.OrderBookScreen
 import com.erayucar.casestudyforexzi.ui.pair.PairListScreen
+import com.erayucar.casestudyforexzi.ui.panel.TradePanelScreen
 import com.erayucar.casestudyforexzi.ui.theme.CaseStudyForExziTheme
 import dagger.hilt.android.AndroidEntryPoint
 
@@ -58,10 +59,21 @@ fun Mainscreen() {
             }
         )){
             val pairID = it.arguments?.getString("pairID") ?: "1041"
-            OrderBookScreen(pairID = pairID){
+            OrderBookScreen(pairID = pairID, onBuyClick = {
+                navController.navigate("panel/$pairID")
+            }){
                 navController.popBackStack()
             }
         }
+        composable("panel/{pairID}", arguments = listOf(
+            navArgument("pairID"){
+                type = NavType.StringType
+            }
+        )){
+            val pairID = it.arguments?.getString("pairID") ?: "1041"
+            TradePanelScreen(pairID = pairID)
+        }
+
     }
 }
 
