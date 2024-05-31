@@ -5,7 +5,7 @@
 
 <p align="center">
   <a href="https://android-arsenal.com/api?level=24"><img alt="API" src="https://img.shields.io/badge/API-24%2B-brightgreen.svg?style=flat"/></a>
-  <a href="https://kotlinlang.org"><img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-1.10.xxx-blue"/></a>
+  <a href="https://kotlinlang.org"><img alt="Kotlin" src="https://img.shields.io/badge/Kotlin-1.9.xx-blue"/></a>
   <a href="https://developer.android.com/kotlin/coroutines"><img alt="Coroutines" src="https://img.shields.io/badge/Coroutines-Asynchronous-red"/></a>  
 </p>
     <p>This repository contains a case study project for Exzi, showcasing a cryptocurrency trading application UI. The application allows users to view and trade various cryptocurrency pairs. This project includes features such as filtering pairs, viewing detailed trading information, and performing buy/sell actions.</p>
